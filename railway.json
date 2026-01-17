@@ -1,0 +1,15 @@
+{
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "uvicorn app.server:app --host 0.0.0.0 --port $PORT"
+  },
+  "crons": [
+    {
+      "name": "daily-update",
+      "schedule": "0 6 * * *",
+      "command": "python app/scraper.py"
+    }
+  ]
+}
