@@ -1,24 +1,52 @@
 from fastapi import FastAPI
-from fastapi.responses import StreamingResponse, HTMLResponse
-import sqlite3, requests
+from fastapi.responses import HTMLResponse, StreamingResponse
+import sqlite3
+import requests
+import os
 
 app = FastAPI()
 DB = "app/database.db"
 
+
+def init_db():
+    if not os.path.exists(DB):
+        import app.scraper
+
+
+init_db()
+
+
 @app.get("/")
 def home():
-    return HTMLResponse(open("static/index.html", encoding="utf-8").read())
+    with open("static/index.html", encoding="utf-8") as f:
+        return HTMLResponse(f.read())
 
-@app.get("/play/{id}")
-def play(id: int):
+
+@app.get("/api/lectures")
+def lectures():
     con = sqlite3.connect(DB)
     cur = con.cursor()
-    cur.execute("SELECT video FROM lectures WHERE id=?", (id,))
+    cur.execute("SELECT id, title FROM lectures")
+    rows = cur.fetchall()
+    con.close()
+    return rows
+
+
+@app.get("/play/{lecture_id}")
+def play(lecture_id: int):
+    con = sqlite3.connect(DB)
+    cur = con.cursor()
+    cur.execute("SELECT video FROM lectures WHERE id=?", (lecture_id,))
     row = cur.fetchone()
     con.close()
 
     if not row:
-        return {"error": "not found"}
+        return {"error": "Lecture not found"}
 
-    r = requests.get(row[0], stream=True)
-    return StreamingResponse(r.iter_content(1024*1024), media_type="video/webm")
+    real_url = row[0]
+    r = requests.get(real_url, stream=True)
+
+    return StreamingResponse(
+        r.iter_content(chunk_size=1024 * 1024),
+        media_type="video/webm"
+    )
