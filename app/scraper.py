@@ -1,10 +1,15 @@
-import sqlite3, requests, re
+import sqlite3
+import requests
+import re
+import os
 
 DB = "app/database.db"
 TXT = "input/lectures.txt"
 
-con = sqlite3.connect(DB)
-cur = con.cursor()
+os.makedirs("app", exist_ok=True)
+
+conn = sqlite3.connect(DB)
+cur = conn.cursor()
 
 cur.execute("""
 CREATE TABLE IF NOT EXISTS lectures (
@@ -21,18 +26,25 @@ for line in lines:
     if "|" not in line:
         continue
 
-    title, subject, url = [x.strip() for x in line.split("|")]
+    title, url = [x.strip() for x in line.split("|", 1)]
 
-    html = requests.get(url).text
-    m = re.search(r'"videoUrl":"(.*?)"', html)
-
-    if not m:
+    try:
+        html = requests.get(url, timeout=15).text
+    except:
         continue
 
-    video = m.group(1).replace("\\/", "/")
-    cur.execute("INSERT INTO lectures(title, video) VALUES(?,?)", (title, video))
+    match = re.search(r'"videoUrl":"(.*?)"', html)
+    if not match:
+        continue
 
-con.commit()
-con.close()
+    video = match.group(1).replace("\\/", "/")
 
-print("Lectures updated")
+    cur.execute(
+        "INSERT INTO lectures(title, video) VALUES (?,?)",
+        (title, video)
+    )
+
+conn.commit()
+conn.close()
+
+print("✅ Lectures updated")
