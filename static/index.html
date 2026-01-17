@@ -1,7 +1,36 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <title>Lecture Player</title>
+</head>
+
 <body style="background:black;color:white;text-align:center">
-<h2>Lecture Player</h2>
-<video width="90%" controls src="/play/1"></video>
+
+<h2>📚 Available Lectures</h2>
+
+<ul id="list"></ul>
+
+<video id="player" width="90%" controls style="margin-top:20px;"></video>
+
+<script>
+fetch("/api/lectures")
+.then(r => r.json())
+.then(data => {
+    const ul = document.getElementById("list");
+
+    data.forEach(item => {
+        const li = document.createElement("li");
+        li.innerHTML =
+            `<button onclick="play(${item[0]})">${item[1]}</button>`;
+        li.style.margin = "10px";
+        ul.appendChild(li);
+    });
+});
+
+function play(id){
+    document.getElementById("player").src = "/play/" + id;
+}
+</script>
+
 </body>
 </html>
